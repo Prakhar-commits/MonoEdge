@@ -32,8 +32,10 @@ _create_test_database_if_missing()
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app import deps  # noqa: E402
 from app.db import engine  # noqa: E402
 from app.main import app  # noqa: E402
+from tests.fakes import FakeEmbedder, FakeLLM, FakeReranker  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -41,6 +43,27 @@ def client():
     # Entering the context runs the app lifespan: creates the extension and tables once.
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def fake_llm():
+    return FakeLLM()
+
+
+@pytest.fixture
+def fake_reranker():
+    return FakeReranker()
+
+
+@pytest.fixture(autouse=True)
+def use_fakes(fake_llm, fake_reranker):
+    """Every test gets fake models, so none of them download a model or call an API."""
+    embedder = FakeEmbedder()
+    app.dependency_overrides[deps.get_embedder] = lambda: embedder
+    app.dependency_overrides[deps.get_reranker] = lambda: fake_reranker
+    app.dependency_overrides[deps.get_llm] = lambda: fake_llm
+    yield
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture(autouse=True)
@@ -69,3 +92,18 @@ def post_signed(client, body: bytes):
         content=body,
         headers={"X-Signature": f"sha256={sign(body)}", "Content-Type": "application/json"},
     )
+
+
+def make_pdf(pages: list[str]) -> bytes:
+    """Build a small PDF with one line of text per page."""
+    from io import BytesIO
+
+    from reportlab.pdfgen import canvas
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer)
+    for page_text in pages:
+        pdf.drawString(50, 750, page_text)
+        pdf.showPage()
+    pdf.save()
+    return buffer.getvalue()

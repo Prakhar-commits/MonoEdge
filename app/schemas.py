@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 
 class WebhookEvent(BaseModel):
@@ -40,3 +40,54 @@ class TicketOut(BaseModel):
     source: str
     created_at: datetime
     updated_at: datetime
+
+
+class DocumentOut(BaseModel):
+    document_id: str
+    file_name: str
+    pages: int
+    chunks: int
+    duplicate: bool
+
+
+class DocumentListItem(BaseModel):
+    document_id: str
+    file_name: str
+    content_type: str
+    pages: int
+    chunks: int
+    created_at: datetime
+
+
+Question = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)]
+
+
+class AskRequest(BaseModel):
+    question: Question
+    retrieval: Literal["vector", "keyword", "hybrid"] = "hybrid"
+    rerank: bool = True
+    hyde: bool = False
+    top_k: int | None = Field(default=None, ge=1, le=20)  # None -> FINAL_TOP_K
+
+
+class Source(BaseModel):
+    file_name: str
+    page: int
+    score: float
+    snippet: str
+
+
+class AskDebug(BaseModel):
+    retrieval: str
+    rerank: bool
+    hyde: bool
+    candidates: int
+    latency_ms: int
+
+
+class AskResponse(BaseModel):
+    answer: str
+    found: bool
+    sources: list[Source]
+    citations_missing: bool = False
+    debug: AskDebug

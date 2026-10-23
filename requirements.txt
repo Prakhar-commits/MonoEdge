@@ -5,3 +5,7 @@ pydantic-settings>=2.3,<3.0
 sqlalchemy>=2.0,<2.1
 psycopg[binary]>=3.2,<4.0
 pgvector>=0.3,<0.5
+python-multipart>=0.0.9
+pypdf>=4.2,<7.0
+fastembed>=0.4,<1.0
+openai>=1.40,<3.0

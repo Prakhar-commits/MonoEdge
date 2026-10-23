@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     final_top_k: int = 5
     rerank_score_threshold: float = 0.0
     max_upload_mb: int = 20
+    vector_similarity_floor: float = 0.5  # below this cosine similarity we skip the LLM
 
     @field_validator("webhook_secret")
     @classmethod

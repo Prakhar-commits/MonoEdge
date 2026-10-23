@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app import models  # noqa: F401  (registers tables on Base)
 from app.config import get_settings
 from app.db import Base, engine, get_db
-from app.routers import webhooks
+from app.routers import ask, documents, webhooks
 
 
 @asynccontextmanager
@@ -21,6 +21,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="AI Docs Assistant", lifespan=lifespan)
+app.include_router(documents.router)
+app.include_router(ask.router)
 app.include_router(webhooks.router)
 
 
