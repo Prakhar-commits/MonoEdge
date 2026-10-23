@@ -6,11 +6,12 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_db
-from app.deps import get_embedder, get_llm
+from app.deps import get_embedder, get_llm, get_reranker
 from app.schemas import AskDebug, AskRequest, AskResponse, Source
 from app.services.answer import NOT_FOUND_TEXT, build_messages, parse_llm_answer
 from app.services.embeddings import Embedder
 from app.services.llm import LLMClient
+from app.services.reranker import Reranker
 from app.services.retrieval import retrieve
 
 logger = logging.getLogger(__name__)
@@ -22,16 +23,25 @@ def ask(
     request: AskRequest,
     db: Session = Depends(get_db),
     embedder: Embedder = Depends(get_embedder),
+    reranker: Reranker = Depends(get_reranker),
     llm: LLMClient = Depends(get_llm),
 ):
     started = time.perf_counter()
     settings = get_settings()
-    top_k = request.top_k or settings.final_top_k
 
-    # Phase 2: only vector retrieval exists, so `retrieval`, `rerank` and `hyde` are accepted
-    # but not used yet. `debug` reports what actually ran.
     result = retrieve(
-        db, embedder, request.question, candidates=settings.retrieval_candidates, top_k=top_k
+        db,
+        embedder,
+        reranker,
+        llm,
+        request.question,
+        retrieval=request.retrieval,
+        rerank=request.rerank,
+        hyde=request.hyde,
+        top_k=request.top_k or settings.final_top_k,
+        candidates=settings.retrieval_candidates,
+        similarity_floor=settings.vector_similarity_floor,
+        rerank_threshold=settings.rerank_score_threshold,
     )
 
     def respond(answer: str, found: bool, sources=None, citations_missing=False) -> AskResponse:
@@ -41,17 +51,18 @@ def ask(
             sources=sources or [],
             citations_missing=citations_missing,
             debug=AskDebug(
-                retrieval="vector",
-                rerank=False,
-                hyde=False,
+                retrieval=request.retrieval,
+                rerank=request.rerank,
+                hyde=result.hyde_used,
                 candidates=result.candidates,
+                top_score=None if result.top_score is None else round(result.top_score, 4),
                 latency_ms=int((time.perf_counter() - started) * 1000),
             ),
         )
 
-    # Relevance gate: if even the best chunk is a weak match, do not call the LLM at all.
-    # Cheaper, faster, and the model cannot make something up from irrelevant text.
-    if not result.chunks or result.scores[0] < settings.vector_similarity_floor:
+    # Relevance gate: if the best match is weak, do not call the LLM at all. Cheaper, faster,
+    # and the model cannot make something up from irrelevant text.
+    if not result.gate_passed:
         return respond(NOT_FOUND_TEXT, found=False)
 
     try:

@@ -82,6 +82,7 @@ class AskDebug(BaseModel):
     rerank: bool
     hyde: bool
     candidates: int
+    top_score: float | None = None  # the score the relevance gate looked at
     latency_ms: int
 
 
