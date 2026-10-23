@@ -3,3 +3,6 @@ target-version = "py310"
 
 [lint]
 select = ["E", "F", "I"]
+
+[lint.per-file-ignores]
+"eval/make_sample_docs.py" = ["E501"]  # sample document text, not code

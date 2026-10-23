@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     chunk_overlap_chars: int = 300
     retrieval_candidates: int = 20
     final_top_k: int = 5
-    rerank_score_threshold: float = 0.0
+    rerank_score_threshold: float = -8.0  # calibrated on the eval set, see README
     max_upload_mb: int = 20
     vector_similarity_floor: float = 0.5  # below this cosine similarity we skip the LLM
 
