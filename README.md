@@ -7,6 +7,11 @@ and stores them safely, even when the same event is delivered twice.
 Stack: FastAPI, PostgreSQL + pgvector (one database for everything), local embedding and
 reranking models (no API key needed for them), and any OpenAI-compatible LLM for the final answer.
 
+**Live demo (until 1 November 2026):** http://13.234.23.126:8000/docs. It is one small EC2 server
+running this same `docker compose` stack, plain HTTP and no login, so please do not upload anything
+sensitive. Uploads are limited to 20 MB and 200 pages. Webhook calls need the signing secret, which I
+can share on request.
+
 ```mermaid
 flowchart LR
     subgraph Upload["POST /documents"]
@@ -165,7 +170,7 @@ change of environment variables, not code.
 **Other notes.** Tables are created on startup (no Alembic; fine for this project, see
 improvements). Upload endpoints are plain `def`, so FastAPI runs the CPU-bound embedding in a
 threadpool instead of blocking the event loop. Uploads are deduplicated by SHA-256, validated by
-extension, content type and (for PDFs) the `%PDF` header, and capped at `MAX_UPLOAD_MB`.
+extension, content type and (for PDFs) the `%PDF` header, and capped at `MAX_UPLOAD_MB` (20 MB, `413`) and `MAX_PAGES` (200 pages, `413`) so one upload cannot tie up the server; both limits are returned to the caller in the error message.
 
 ## Evaluation results
 

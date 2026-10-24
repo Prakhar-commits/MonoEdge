@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     final_top_k: int = 5
     rerank_score_threshold: float = -8.0  # calibrated on the eval set, see README
     max_upload_mb: int = 20
+    max_pages: int = 200  # embedding runs in the request, so cap the work
     vector_similarity_floor: float = 0.5  # below this cosine similarity we skip the LLM
 
     @field_validator("webhook_secret")

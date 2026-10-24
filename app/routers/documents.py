@@ -66,6 +66,10 @@ def upload_document(
 
     try:
         pages = extract_pages(data, extension)
+        if len(pages) > settings.max_pages:
+            raise HTTPException(
+                413, f"Document has {len(pages)} pages; the limit is {settings.max_pages}."
+            )
         result = ingest_document(
             db,
             embedder,
