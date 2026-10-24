@@ -1,7 +1,6 @@
 import pytest
 
 from app.config import get_settings
-from app.services.agent import wants_ticket
 from app.services.answer import NOT_FOUND_TEXT, parse_llm_answer
 from app.services.chunking import chunk_pages
 from app.services.retrieval import build_tsquery, rrf
@@ -119,36 +118,6 @@ def test_zero_and_out_of_range_citations_are_ignored():
     parsed = parse_llm_answer("Nothing real [0] [5].", [StubChunk("a.pdf", 1)])
     assert parsed.citations_missing is True
     assert [(c.file_name, c.page) for c in parsed.used] == [("a.pdf", 1)]
-
-
-# ---------- agent routing ----------
-
-
-@pytest.mark.parametrize(
-    "text",
-    [
-        "Please raise a ticket for the broken login",
-        "can you CREATE a support ticket about billing",
-        "open a ticket: dashboard is slow",
-        "log a high priority ticket",
-        "Submit new ticket for VPN access",
-    ],
-)
-def test_ticket_intent_is_detected(text):
-    assert wants_ticket(text)
-
-
-@pytest.mark.parametrize(
-    "text",
-    [
-        "What is the leave policy?",
-        "Where is the ticket price listed?",
-        "How do tickets get escalated to engineering?",
-        "I raised my concerns last week",
-    ],
-)
-def test_ordinary_questions_are_not_ticket_requests(text):
-    assert not wants_ticket(text)
 
 
 # ---------- pure-function edge cases ----------

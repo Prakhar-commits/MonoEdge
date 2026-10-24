@@ -81,6 +81,6 @@ class Ticket(Base):
     priority: Mapped[str] = mapped_column(String)  # low|medium|high
     status: Mapped[str] = mapped_column(String, default="open", server_default="open")
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    source: Mapped[str] = mapped_column(String)  # webhook|agent
+    source: Mapped[str] = mapped_column(String)  # where the ticket came from, e.g. "webhook"
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())

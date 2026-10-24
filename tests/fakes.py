@@ -43,11 +43,10 @@ class FakeReranker:
 class FakeLLM:
     """Returns a scripted reply and records every call so tests can assert on it."""
 
-    def __init__(self, reply: str = "NOT_FOUND", tool_calls=None):
+    def __init__(self, reply: str = "NOT_FOUND"):
         self.reply = reply
-        self.tool_calls = tool_calls or []  # scripted tool calls for agent tests
         self.calls = []
 
     def complete(self, messages, tools=None):
         self.calls.append({"messages": messages, "tools": tools})
-        return LLMResponse(text=self.reply, tool_calls=list(self.tool_calls))
+        return LLMResponse(text=self.reply)

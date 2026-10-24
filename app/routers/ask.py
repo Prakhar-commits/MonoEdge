@@ -7,8 +7,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.db import get_db
 from app.deps import get_embedder, get_llm, get_reranker
-from app.schemas import AskDebug, AskRequest, AskResponse, Source, TicketOut
-from app.services.agent import try_create_ticket, wants_ticket
+from app.schemas import AskDebug, AskRequest, AskResponse, Source
 from app.services.answer import NOT_FOUND_TEXT, build_messages, parse_llm_answer
 from app.services.embeddings import Embedder
 from app.services.llm import LLMClient
@@ -29,29 +28,6 @@ def ask(
 ):
     started = time.perf_counter()
     settings = get_settings()
-
-    # "Raise a ticket ..." requests go to the tool-calling agent first; if the model does
-    # not call the tool, we carry on with normal document question answering.
-    if wants_ticket(request.question):
-        agent_result = try_create_ticket(db, llm, request.question)
-        if agent_result is not None:
-            action = None
-            if agent_result.ticket is not None:
-                ticket = TicketOut.model_validate(agent_result.ticket).model_dump(mode="json")
-                action = {"type": "ticket_created", "ticket": ticket}
-            return AskResponse(
-                answer=agent_result.answer,
-                found=agent_result.found,
-                sources=[],
-                action=action,
-                debug=AskDebug(
-                    retrieval="agent",
-                    rerank=False,
-                    hyde=False,
-                    candidates=0,
-                    latency_ms=int((time.perf_counter() - started) * 1000),
-                ),
-            )
 
     result = retrieve(
         db,

@@ -91,5 +91,4 @@ class AskResponse(BaseModel):
     found: bool
     sources: list[Source]
     citations_missing: bool = False
-    action: dict | None = None  # set when /ask did something, e.g. created a ticket
     debug: AskDebug
