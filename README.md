@@ -100,8 +100,8 @@ use fake embedder, reranker and LLM classes, so they never download a model or c
 `ruff check .` runs the linter. GitHub Actions runs both on every push.
 
 **Evaluation:** `python eval/make_sample_docs.py` then `python eval/run_eval.py` (needs the
-database from `docker compose up db -d`; uses a separate `docs_eval` database). It writes
-`eval/results.md`.
+database from `docker compose up db -d`; uses a separate `docs_eval` database). It prints the
+results and also writes them to `eval/results.md` (a generated file, not committed).
 
 ## Design choices and why
 
@@ -172,7 +172,7 @@ extension, content type and (for PDFs) the `%PDF` header, and capped at `MAX_UPL
 Ten questions (4 exact-term, 4 paraphrased, 2 unanswerable) over three sample documents (a 7-page
 handbook, an 8-page engineering playbook made of look-alike decoy pages, and a product FAQ full
 of error codes). `top_k=5`; hit@1 means the correct (file, page) was the first chunk returned.
-Full output, including a per-question rank table, is in [`eval/results.md`](eval/results.md).
+The script's full output also includes a per-question rank table and the score calibration.
 
 | Config | hit@1 | hit@5 | MRR | unanswerable rejected | answerable wrongly rejected | retrieval ms |
 |---|---|---|---|---|---|---|

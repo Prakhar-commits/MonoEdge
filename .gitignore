@@ -5,3 +5,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .cloud-secrets.txt
+
+# Markdown notes stay local; only the README is committed.
+*.md
+!README.md
