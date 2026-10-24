@@ -10,7 +10,7 @@ def signature_is_valid(raw_body: bytes, header: str | None, secret: str) -> bool
     if not header:
         return False
     # Accept both "abc123..." and "sha256=abc123...".
-    received = header.removeprefix("sha256=").strip()
+    received = header.strip().removeprefix("sha256=").strip()
     expected = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
     # compare_digest takes the same time wherever the strings differ, so an attacker
     # cannot guess the signature byte by byte from response timing.

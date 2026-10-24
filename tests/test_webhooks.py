@@ -1,3 +1,6 @@
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
 from sqlalchemy import text
 
 from app.db import engine
@@ -114,3 +117,49 @@ def test_list_tickets_filters_by_priority(client):
     post_signed(client, make_event(event_id="e2", ticket_id="T2", priority="high"))
     result = client.get("/tickets", params={"priority": "high"}).json()
     assert [t["ticket_id"] for t in result] == ["T2"]
+
+
+def test_concurrent_duplicate_webhooks_create_exactly_one_ticket(client):
+    """Eight identical requests at the same instant: the primary key lets only one win."""
+    body = make_event(event_id="evt_race")
+    start_together = threading.Barrier(8)
+
+    def send(_):
+        start_together.wait()
+        return post_signed(client, body).status_code
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        codes = list(pool.map(send, range(8)))
+
+    assert codes.count(202) == 1
+    assert codes.count(200) == 7
+    assert count("tickets") == 1
+    assert count("webhook_events") == 1
+
+
+def test_same_ticket_id_in_a_new_event_updates_the_ticket(client):
+    post_signed(client, make_event(event_id="evt_a", title="Old title"))
+    post_signed(client, make_event(event_id="evt_b", title="New title"))
+    tickets = client.get("/tickets").json()
+    assert [t["title"] for t in tickets] == ["New title"]
+    assert count("webhook_events") == 2
+
+
+def test_update_for_unknown_ticket_marks_event_failed(client):
+    body = (
+        b'{"event_id":"evt_x","type":"ticket.updated",'
+        b'"data":{"ticket_id":"NOPE","status":"closed"}}'
+    )
+    assert post_signed(client, body).status_code == 202
+    with engine.connect() as conn:
+        row = conn.execute(text("SELECT status, error FROM webhook_events")).one()
+    assert row.status == "failed"
+    assert "NOPE" in row.error
+
+
+def test_tickets_limit_is_capped_and_status_filter_works(client):
+    for i in range(3):
+        post_signed(client, make_event(event_id=f"e{i}", ticket_id=f"T{i}"))
+    assert len(client.get("/tickets", params={"limit": 2}).json()) == 2
+    assert len(client.get("/tickets", params={"limit": 100000}).json()) == 3
+    assert client.get("/tickets", params={"status": "closed"}).json() == []
