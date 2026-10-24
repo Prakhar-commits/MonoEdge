@@ -65,3 +65,14 @@ def test_list_and_delete_document(client):
     with engine.connect() as conn:
         assert conn.scalar(text("SELECT count(*) FROM chunks")) == 0
     assert client.delete(f"/documents/{document_id}").status_code == 404
+
+
+def test_upload_over_page_limit_returns_413(client, monkeypatch):
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "max_pages", 2)
+    pdf = make_pdf([LEAVE, APPROVAL, LEAVE + "!"])
+    response = upload(client, "long.pdf", pdf, "application/pdf")
+    assert response.status_code == 413
+    assert "3 pages" in response.json()["detail"]
+    assert client.get("/documents").json() == []

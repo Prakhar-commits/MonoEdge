@@ -1,4 +1,3 @@
-.env
 .venv/
 __pycache__/
 *.pyc
@@ -9,3 +8,5 @@ __pycache__/
 # Markdown notes stay local; only the README is committed.
 *.md
 !README.md
+config.bat
+node_modules
